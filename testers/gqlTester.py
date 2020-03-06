@@ -49,10 +49,16 @@ class GQLTester(BaseTester):
         gql_query = self.login_data["schema"].prepare_query(self.login_data["credentials"])
         result = self.client.execute(gql_query)
 
+        # Setting Token.
+
+        self.set_token(result["login"]["token"], result["login"]["expires_in"])
+
+    def set_token(self, token, expires_in):
+
         # Setting Results.
 
-        self.login_data["token"]["expires_in"] = result["login"]["expires_in"]
-        self.login_data["token"]["token"] = "Bearer " + result["login"]["token"]
+        self.login_data["token"]["expires_in"] = expires_in
+        self.login_data["token"]["token"] = "Bearer " + token if not token.startswith("Bearer ") else token
         self.transport_headers = {'Authorization': self.login_data["token"]["token"]}
 
         # Setting a new Transport Header.

@@ -12,6 +12,10 @@ class BaseTester:
     @staticmethod
     def stats(results):
 
+        if not results:
+            print("Results: [NO RESULTS]")
+            return
+
         total_time = 0.0
         error_requests = 0
         success_request = 0
