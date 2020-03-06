@@ -1,31 +1,37 @@
 import datetime
 import http.client
-from schema import Schema
+import json
+
+from schemas.restSchema import RestSchema
+from .tester import BaseTester
 
 
-class Tester:
+class RestAPITester(BaseTester):
+
+    # Method Types.
 
     METHOD_POST = "POST"
     METHOD_GET = "GET"
     METHOD_PUT = "PUT"
-    schemas = {}
+    METHOD_DELETE = "DELETE"
 
     def __init__(self, api_url):
         self.api_url = api_url
-        self.client = None
+        self.api_type = self.API_REST
+        self.schemas = {}
 
-    def set_schema(self, endpoint, schema, method=METHOD_GET):
+    def set_schema(self, endpoint, schema, method=METHOD_POST):
 
         if endpoint not in self.schemas.keys():
-            self.schemas[endpoint] = {method: [Schema(schema)]}
+            self.schemas[endpoint] = {method: [RestSchema(schema)]}
         else:
-            self.schemas[endpoint][method].append(Schema(schema))
+            self.schemas[endpoint][method].append(RestSchema(schema))
 
     def execute_request(self, method, endpoint, schema, iter_order=None):
 
         # Generating data and starting HTTP client.
 
-        payload = schema.execute(iter_order)
+        payload = json.dumps(schema.generate_data(schema, iter_order))
         client = http.client.HTTPConnection(self.api_url)
 
         # Starting timer and making the Request
@@ -42,7 +48,7 @@ class Tester:
         output = {"result": {"time_elapsed": elapsed, "result": client.getresponse().status}, "payload": payload}
         return output
 
-    def run_all(self, iterations=100):
+    def run_all(self, iterations=BaseTester.DEFAULT_ITERATIONS):
         for endpoint in self.schemas.keys():
             for method in self.schemas[endpoint].keys():
 
@@ -53,24 +59,3 @@ class Tester:
                         results.append(self.execute_request(method, endpoint, schema, index))
 
                 self.stats(results)
-
-
-    def stats(self, results):
-
-        total_time = 0.0
-        error_requests = 0
-        success_request = 0
-
-        for result in results:
-            total_time += result["result"]["time_elapsed"]
-            if result["result"]["result"] == 200:
-                success_request += 1
-            else:
-                error_requests += 1
-
-        average_time_per_request = total_time / len(results)
-        requests_per_second = len(results) / total_time
-
-        print("Results: [TIME ELAPSED: %f] [REQUESTS PER SECOND: %f] [AVERAGE TIME PER REQUEST: %f]"
-              " [SUCCESSFUL REQUESTS: %i] [ERROR REQUESTS: %i]" %
-              (total_time, requests_per_second, average_time_per_request, success_request, error_requests))
